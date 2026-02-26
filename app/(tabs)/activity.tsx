@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function ProfileScreen() {
+export default function ActivityScreen() {
   return (
     <View style={styles.container}>
-        <Text>Profile Screen</Text>
+        <Text>Activity Screen</Text>
     </View>
   );
 }
