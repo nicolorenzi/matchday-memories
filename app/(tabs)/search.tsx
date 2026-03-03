@@ -1,3 +1,6 @@
+// Users can: 
+// - Search for teams, other accounts
+
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function SearchScreen() {

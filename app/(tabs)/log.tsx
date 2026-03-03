@@ -1,3 +1,7 @@
+// Users can:
+// - Select match by search
+// - Can review, rate, or just log match as watched
+
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function LogScreen() {

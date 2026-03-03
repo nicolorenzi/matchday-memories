@@ -1,8 +1,8 @@
 export interface User {
     username: string;
     email: string;
-    favoriteTeam: string;
-    profilePicUrl?: string;
+    // favoriteTeam: string;
+    // profilePicUrl?: string;
 }
 
 /* Check API for these structures
@@ -23,8 +23,8 @@ export interface Competition {
 export interface Match {
     id?: string;
     homeTeam: string;
-    awayTeam: string;
-    date: Date;
+    awayTeam: string; // ISO
+    date: String;
     venue: string;
     homeScore?: number;         
     awayScore?: number;
@@ -38,15 +38,17 @@ export interface JournalEntry {
     matchId: string;
     content: string;
     rating: number; // 0 - 5 stars, 0.5 increments
+    createdAt: string; 
     // date: Date; *Need date and time
 }
 
-export interface MatchList {
+export interface List {
     id?: string;
     userId: string;            
     title: string;              
     description?: string;      // optional description
     matchIds: string[];        // array of match IDs
     // date: Date; *Need date and time
-    isPublic?: boolean;       
+    isPublic?: boolean;      
+    createdAt: string; // or Firebase Timestamp 
 }

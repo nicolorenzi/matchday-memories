@@ -1,3 +1,8 @@
+// Users can: 
+// - Set account information (pfp, name, bio, location, top 3 matches, lists)
+// - View their logs
+// - View followers and following 
+
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
