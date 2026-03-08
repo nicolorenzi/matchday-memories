@@ -96,7 +96,7 @@ export default function ProfileScreen() {
       {/* Nav bar */}
       <View style={styles.navbar}>
         <Text style={styles.navLogo}>Matchday Memories</Text>
-        <TouchableOpacity style={styles.settingsButton}>
+        <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/profile/settings")}>
           <Text style={styles.settingsIcon}>Settings</Text>
         </TouchableOpacity>
       </View>
