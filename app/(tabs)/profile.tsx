@@ -3,9 +3,16 @@
 // - View their logs
 // - View followers and following 
 
+// Users can: 
+// - Set account information (pfp, name, bio, location, top 3 matches, lists)
+// - View their logs
+// - View followers and following 
+
+import { auth, db } from '@/FirebaseConfig';
 import { getJournalEntriesByUser } from '@/services/journalService';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -15,23 +22,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-const mockUser = {
-  username: '@ManUtdNico',
-  name: 'Nico Lorenzi',
-  bio: "Football is my religion. Watching the beautiful game since '98. Obsessed with pressing tactics and set piece analysis.",
-  location: 'Milan, Italy',
-  avatar: null,
-  stats: { logged: 312, following: 48, followers: 127 },
-};
-
-const recentMatches = [
-  { id: 1, home: 'AC Milan', away: 'Inter Milan', score: '2–1', date: 'Feb 28', competition: 'Serie A' },
-  { id: 2, home: 'Man City', away: 'Arsenal', score: '1–1', date: 'Feb 25', competition: 'Premier League' },
-  { id: 3, home: 'Barcelona', away: 'Real Madrid', score: '3–2', date: 'Feb 20', competition: 'La Liga' },
-];
-
-type Match = typeof recentMatches[0];
 
 const PodiumSlot = ({ rank }: { rank: 1 | 2 | 3 }) => {
   const config = {
@@ -53,18 +43,6 @@ const PodiumSlot = ({ rank }: { rank: 1 | 2 | 3 }) => {
   );
 };
 
-const MatchRow = ({ match }: { match: Match }) => (
-  <View style={styles.matchRow}>
-    <View style={styles.matchInfo}>
-      <Text style={styles.matchTeams}>
-        {match.home} <Text style={styles.matchVs}>vs</Text> {match.away}
-      </Text>
-      <Text style={styles.matchMeta}>{match.competition} · {match.date}</Text>
-    </View>
-    <Text style={styles.matchScore}>{match.score}</Text>
-  </View>
-);
-
 const NavButton = ({ label, onPress }: { label: string; onPress: () => void }) => (
   <TouchableOpacity style={styles.navButton} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.navButtonLeft}>
@@ -76,18 +54,33 @@ const NavButton = ({ label, onPress }: { label: string; onPress: () => void }) =
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const MOCK_USER_ID = "demoUser123";
+  const [userData, setUserData] = useState<any>(null);
   const [entries, setEntries] = useState<any[]>([]);
-  const initials = mockUser.name.split(' ').map(n => n[0]).join('');
 
-  useEffect(() => {
-    const fetchEntries = async () => {
-      const data = await getJournalEntriesByUser(MOCK_USER_ID);
-      setEntries(data);
-    };
+  const initials = userData?.name
+    ? userData.name.split(' ').map((n: string) => n[0]).join('')
+    : '?';
 
-    fetchEntries();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUser = async () => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+        const snap = await getDoc(doc(db, 'users', uid));
+        if (snap.exists()) setUserData(snap.data());
+      };
+
+      const fetchEntries = async () => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+        const data = await getJournalEntriesByUser(uid);
+        setEntries(data);
+      };
+
+      fetchUser();
+      fetchEntries();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -113,10 +106,10 @@ export default function ProfileScreen() {
 
             {/* Name + username + stats */}
             <View style={styles.profileMeta}>
-              <Text style={styles.profileName}>{mockUser.name}</Text>
-              <Text style={styles.profileUsername}>{mockUser.username}</Text>
+              <Text style={styles.profileName}>{userData?.name || 'NO NAME SET'}</Text>
+              <Text style={styles.profileUsername}>@{userData?.username || '@username'}</Text>
               <View style={styles.statsRow}>
-                {([['Logged', mockUser.stats.logged], ['Following', mockUser.stats.following], ['Followers', mockUser.stats.followers]] as [string, number][]).map(([label, val]) => (
+                {([['Logged', entries.length], ['Following', 0], ['Followers', 0]] as [string, number][]).map(([label, val]) => (
                   <View key={label} style={styles.statItem}>
                     <Text style={styles.statValue}>{val}</Text>
                     <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
@@ -126,9 +119,15 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.bio}>{mockUser.bio}</Text>
-          <Text style={styles.location}>📍 {mockUser.location}</Text>
+          <Text style={styles.bio}>{userData?.bio}</Text>
+          {userData?.location ? (
+            <Text style={styles.location}>📍 {userData.location}</Text>
+          ) : null}
         </View>
+
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push("/profile/edit_profile")}>
+          <Text style={styles.editButtonText}>EDIT PROFILE</Text>
+        </TouchableOpacity>
 
         {/* Divider */}
         <View style={styles.divider} />
@@ -151,7 +150,7 @@ export default function ProfileScreen() {
         {/* Bottom section */}
         <View style={styles.bottomSection}>
 
-          {/* Recent matches */}
+          {/* Recent entries */}
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Text style={styles.sectionTitle}>RECENT</Text>
@@ -162,19 +161,11 @@ export default function ProfileScreen() {
             {entries.map(entry => (
               <View key={entry.id} style={styles.matchRow}>
                 <View style={styles.matchInfo}>
-                  <Text style={styles.matchTeams}>
-                    {entry.matchId}
-                  </Text>
-                  <Text style={styles.matchMeta}>
-                    {new Date(entry.createdAt).toLocaleDateString()}
-                  </Text>
-                  <Text style={styles.matchMeta}>
-                    {entry.content}
-                  </Text>
+                  <Text style={styles.matchTeams}>{entry.matchId}</Text>
+                  <Text style={styles.matchMeta}>{new Date(entry.createdAt).toLocaleDateString()}</Text>
+                  <Text style={styles.matchMeta}>{entry.content}</Text>
                 </View>
-                <Text style={styles.matchScore}>
-                  {entry.rating} ⭐
-                </Text>
+                <Text style={styles.matchScore}>{entry.rating} ⭐</Text>
               </View>
             ))}
           </View>
@@ -303,6 +294,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(0,0,0,0.32)',
     letterSpacing: 0.8,
+  },
+  editButton: {
+    marginHorizontal: 22,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(58,125,58,0.4)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    fontFamily: 'BebasNeue-Regular',
+    fontSize: 14,
+    letterSpacing: 2,
+    color: '#3a7d3a',
   },
 
   // Divider
