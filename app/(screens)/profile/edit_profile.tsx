@@ -5,14 +5,15 @@
 // - Add duplicate checking for usernames
 // - Add option to change password (will require re-authentication, so maybe do this in a separate screen?)
 
-import { auth, db } from '@/FirebaseConfig';
+import { auth } from '@/FirebaseConfig';
+import { getUser, updateUser } from '@/services/userService';
 import { useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
-    Alert, SafeAreaView, StatusBar, StyleSheet,
+    Alert, StatusBar, StyleSheet,
     Text, TextInput, TouchableOpacity, View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -26,13 +27,12 @@ export default function EditProfileScreen() {
         const fetchUser = async () => {
             const uid = auth.currentUser?.uid;
             if (!uid) return;
-            const snap = await getDoc(doc(db, 'users', uid));
-            if (snap.exists()) {
-                const data = snap.data();
-                setName(data.name || '');
-                setUsername(data.username || '');
-                setBio(data.bio || '');
-                setLocation(data.location || '');
+            const user = await getUser(uid);
+            if (user) {
+                setName(user.name || '');
+                setUsername(user.username || '');
+                setBio(user.bio || '');
+                setLocation(user.location || '');
             }
         };
         fetchUser();
@@ -43,7 +43,7 @@ export default function EditProfileScreen() {
         if (!uid) return;
         setSaving(true);
         try {
-            await setDoc(doc(db, 'users', uid), { name, username, bio, location }, { merge: true });
+            await updateUser(uid, { name, username, bio, location });
             router.back();
         } catch (err: any) {
             Alert.alert('Error', err.message);

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from "../../../FirebaseConfig";
 
 export default function SettingsScreen() {

@@ -19,10 +19,20 @@ export default function RootLayout() {
   const [initialURL, setInitialURL] = useState<string | null | undefined>(undefined);
   const hasNavigated = useRef(false);
 
+  // Deep links
   useEffect(() => {
-    Linking.getInitialURL().then(url => setInitialURL(url ?? null));
+    Linking.getInitialURL().then(url => {
+      // Ignore Expo Go dev server URLs
+      if (!url || url.startsWith('exp://') || url.startsWith('http')) {
+        setInitialURL(null);
+        return;
+      }
+      const cleaned = url.replace('matchdaymemories://', '');
+      setInitialURL(cleaned && cleaned.length > 0 ? cleaned : null);
+    });
   }, []);
 
+  // Firebase auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
@@ -31,6 +41,7 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
+  // Routing logic
   useEffect(() => {
     if (loading) return;
     if (initialURL === undefined) return;
@@ -39,20 +50,18 @@ export default function RootLayout() {
     hasNavigated.current = true;
 
     if (initialURL) {
-      const path = initialURL.replace('matchdaymemories://', '');
-      if (path) {
-        router.replace(`/${path}` as any);
-        return;
-      }
+      router.replace(`/${initialURL}` as any);
+      return;
     }
 
     if (user) {
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     } else {
-      router.replace("/(auth)");
+      router.replace('/(auth)');
     }
   }, [loading, initialURL, user]);
 
+  // Deep link listener
   useEffect(() => {
     const subscription = Linking.addEventListener('url', ({ url }) => {
       const path = url.replace('matchdaymemories://', '');

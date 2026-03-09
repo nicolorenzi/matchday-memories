@@ -3,19 +3,13 @@
 // - View their logs
 // - View followers and following 
 
-// Users can: 
-// - Set account information (pfp, name, bio, location, top 3 matches, lists)
-// - View their logs
-// - View followers and following 
-
-import { auth, db } from '@/FirebaseConfig';
+import { auth } from '@/FirebaseConfig';
 import { getJournalEntriesByUser } from '@/services/journalService';
+import { getUser, UserData } from '@/services/userService';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -23,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PodiumSlot = ({ rank }: { rank: 1 | 2 | 3 }) => {
   const config = {
@@ -55,7 +50,7 @@ const NavButton = ({ label, onPress }: { label: string; onPress: () => void }) =
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
 
   const initials = userData?.name
@@ -64,22 +59,20 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const fetchUser = async () => {
+      const fetchData = async () => {
         const uid = auth.currentUser?.uid;
         if (!uid) return;
-        const snap = await getDoc(doc(db, 'users', uid));
-        if (snap.exists()) setUserData(snap.data());
+
+        const [user, journalEntries] = await Promise.all([
+          getUser(uid),
+          getJournalEntriesByUser(uid),
+        ]);
+
+        if (user) setUserData(user);
+        setEntries(journalEntries);
       };
 
-      const fetchEntries = async () => {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
-        const data = await getJournalEntriesByUser(uid);
-        setEntries(data);
-      };
-
-      fetchUser();
-      fetchEntries();
+      fetchData();
     }, [])
   );
 
@@ -118,7 +111,7 @@ export default function ProfileScreen() {
               <Text style={styles.profileName}>{userData?.name || 'NO NAME SET'}</Text>
               <Text style={styles.profileUsername}>@{userData?.username || '@username'}</Text>
               <View style={styles.statsRow}>
-                {([['Logged', entries.length], ['Following', 0], ['Followers', 0]] as [string, number][]).map(([label, val]) => (
+                {([['Logged', entries.length], ['Following', userData?.following ?? 0], ['Followers', userData?.followers ?? 0]] as [string, number][]).map(([label, val]) => (
                   <View key={label} style={styles.statItem}>
                     <Text style={styles.statValue}>{val}</Text>
                     <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
