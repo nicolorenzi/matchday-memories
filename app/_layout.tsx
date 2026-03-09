@@ -4,8 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import * as Linking from 'expo-linking';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { auth } from '../FirebaseConfig';
 
@@ -15,25 +16,50 @@ export default function RootLayout() {
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialURL, setInitialURL] = useState<string | null | undefined>(undefined);
+  const hasNavigated = useRef(false);
+
+  useEffect(() => {
+    Linking.getInitialURL().then(url => setInitialURL(url ?? null));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     if (loading) return;
+    if (initialURL === undefined) return;
+    if (hasNavigated.current) return;
+
+    hasNavigated.current = true;
+
+    if (initialURL) {
+      const path = initialURL.replace('matchdaymemories://', '');
+      if (path) {
+        router.replace(`/${path}` as any);
+        return;
+      }
+    }
 
     if (user) {
       router.replace("/(tabs)");
     } else {
       router.replace("/(auth)");
     }
-  }, [loading, user]);
+  }, [loading, initialURL, user]);
+
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      const path = url.replace('matchdaymemories://', '');
+      if (path) router.replace(`/${path}` as any);
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (loading) {
     return (
