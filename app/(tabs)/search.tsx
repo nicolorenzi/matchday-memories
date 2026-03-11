@@ -1,13 +1,17 @@
 // Users can: 
-// - Search for matches, teams, and competitions
+// - Search for:
+//  matches -> clicking match takes you to match details page, can choose to rate or review
+//  teams -> clicking team takes you to team details page (all games per competiton, can choose year)
+//  competitions -> clicking competition takes you to comp details page (all games per season, can choose year)
 
 import {
   Competition,
+  COMPETITION_ALIASES,
+  expandQuery,
   getCompetitions,
-  getMatchesByCompetition,
   Match,
+  searchMatches,
   searchTeams,
-  SUPPORTED_COMPETITIONS,
   Team,
 } from '@/services/footballService';
 import { useRouter } from 'expo-router';
@@ -37,6 +41,8 @@ const formatScore = (match: Match) => {
   if (home === null || away === null) return 'vs';
   return `${home} – ${away}`;
 };
+
+// Row components 
 
 const MatchRow = ({ match, onPress }: { match: Match; onPress: () => void }) => (
   <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -106,10 +112,12 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Preload competitions once
   useEffect(() => {
     getCompetitions().then(setAllCompetitions).catch(() => {});
   }, []);
 
+  // On each query change, fetch/filter all three types
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -125,43 +133,28 @@ export default function SearchScreen() {
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const [teamsResult, ...matchResults] = await Promise.allSettled([
+        const [teamsResult, matchesResult] = await Promise.allSettled([
           searchTeams(query),
-          ...SUPPORTED_COMPETITIONS.map(c => getMatchesByCompetition(c.code)),
+          searchMatches(query),
         ]);
 
         if (teamsResult.status === 'fulfilled') setAllTeams(teamsResult.value);
-
-        const q = query.toLowerCase();
-        const allFetched: Match[] = matchResults
-          .filter((r): r is PromiseFulfilledResult<Match[]> => r.status === 'fulfilled')
-          .flatMap(r => r.value);
-
-        const seen = new Set<number>();
-        const filtered = allFetched.filter(m => {
-          if (seen.has(m.id)) return false;
-          seen.add(m.id);
-          return (
-            m.homeTeam.name.toLowerCase().includes(q) ||
-            m.awayTeam.name.toLowerCase().includes(q) ||
-            m.competition.name.toLowerCase().includes(q)
-          );
-        });
-
-        setAllMatches(filtered);
+        if (matchesResult.status === 'fulfilled') setAllMatches(matchesResult.value);
       } catch {
+
       } finally {
         setLoading(false);
       }
     }, 350);
   }, [query]);
 
+  // Competitions filtered client-side
   const filteredCompetitions = allCompetitions.filter(c => {
     if (!query.trim()) return false;
-    const q = query.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.area.name.toLowerCase().includes(q)
+    const terms = expandQuery(query, COMPETITION_ALIASES);
+    return terms.some(term =>
+      c.name.toLowerCase().includes(term) ||
+      c.area.name.toLowerCase().includes(term)
     );
   });
 
@@ -181,7 +174,6 @@ export default function SearchScreen() {
     if (!hasSearched || loading) return null;
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyEmoji}>⚽</Text>
         <Text style={styles.emptyText}>NO {activeTab.toUpperCase()} FOUND</Text>
       </View>
     );
@@ -196,10 +188,9 @@ export default function SearchScreen() {
         <Text style={styles.navLogo}>Matchday Memories</Text>
       </View>
 
-      {/* Search bar — always visible */}
+      {/* Search bar */}
       <View style={styles.searchBarWrapper}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
             value={query}
@@ -217,16 +208,15 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* Idle state — nothing typed yet */}
+      {/* Idle state */}
       {!hasSearched ? (
         <View style={styles.idleState}>
-          <Text style={styles.idleEmoji}>🏟️</Text>
           <Text style={styles.idleTitle}>FIND YOUR MATCH</Text>
           <Text style={styles.idleSub}>SEARCH BY TEAM, COMPETITION, OR MATCH</Text>
         </View>
       ) : (
         <>
-          {/* Tabs with result counts */}
+          {/* Tabs */}
           <View style={styles.tabs}>
             {(['matches', 'teams', 'competitions'] as Tab[]).map(tab => (
               <TouchableOpacity
@@ -347,11 +337,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tab: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',

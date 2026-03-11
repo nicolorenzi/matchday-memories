@@ -156,7 +156,7 @@ export default function ProfileScreen() {
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Text style={styles.sectionTitle}>RECENT</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/profile/history")}>
                 <Text style={styles.viewDiary}>VIEW HISTORY ›</Text>
               </TouchableOpacity>
             </View>
