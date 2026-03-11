@@ -24,13 +24,11 @@ export default function UserInfoScreen() {
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Live feedback states
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
 
   const handleUsernameChange = (value: string) => {
-    // Strip spaces and special chars, lowercase only
-    const cleaned = value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    const cleaned = value.replace(/[^a-zA-Z0-9_.]/g, '');
     setUsername(cleaned);
     setUsernameError(null);
   };
@@ -38,7 +36,7 @@ export default function UserInfoScreen() {
   const checkUsername = async () => {
     if (!username) return;
     setUsernameChecking(true);
-    const taken = await isUsernameTaken(username);
+    const taken = await isUsernameTaken(username.toLowerCase());
     setUsernameChecking(false);
     if (taken) setUsernameError('Username is already taken.');
   };
@@ -62,8 +60,7 @@ export default function UserInfoScreen() {
 
     setSaving(true);
     try {
-      // Final uniqueness check before saving
-      const taken = await isUsernameTaken(username);
+      const taken = await isUsernameTaken(username.toLowerCase());
       if (taken) {
         setUsernameError('Username is already taken.');
         setSaving(false);
@@ -73,6 +70,7 @@ export default function UserInfoScreen() {
       await updateUser(uid, {
         name: name.trim(),
         username: username.trim(),
+        usernameLower: username.trim().toLowerCase(),
         bio: bio.trim(),
         location: location.trim(),
       });

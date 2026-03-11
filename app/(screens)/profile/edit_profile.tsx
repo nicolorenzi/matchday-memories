@@ -1,16 +1,14 @@
 // TO-DO 
-// - Turn off autocorrect 
 // - Add actual cities for location field (maybe use Google Places API?)
 // - Add option for profile pic upload (eventually will need to set up Firebase Storage for this, and have guidelines)
-// - Add duplicate checking for usernames
 // - Add option to change password (will require re-authentication, so maybe do this in a separate screen?)
 
 import { auth } from '@/FirebaseConfig';
-import { getUser, updateUser } from '@/services/userService';
+import { getUser, isUsernameTaken, updateUser } from '@/services/userService';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert, StatusBar, StyleSheet,
+    ActivityIndicator, Alert, StatusBar, StyleSheet,
     Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,9 +17,13 @@ export default function EditProfileScreen() {
     const router = useRouter();
     const [name, setName] = useState('');
     const [username, setUsername] = useState('');
+    const [originalUsername, setOriginalUsername] = useState('');
     const [bio, setBio] = useState('');
     const [location, setLocation] = useState('');
     const [saving, setSaving] = useState(false);
+
+    const [usernameError, setUsernameError] = useState<string | null>(null);
+    const [usernameChecking, setUsernameChecking] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -31,6 +33,7 @@ export default function EditProfileScreen() {
             if (user) {
                 setName(user.name || '');
                 setUsername(user.username || '');
+                setOriginalUsername(user.username || '');
                 setBio(user.bio || '');
                 setLocation(user.location || '');
             }
@@ -38,12 +41,58 @@ export default function EditProfileScreen() {
         fetchUser();
     }, []);
 
+    const handleUsernameChange = (value: string) => {
+        const cleaned = value.replace(/[^a-zA-Z0-9_.]/g, '');
+        setUsername(cleaned);
+        setUsernameError(null);
+    };
+
+    const checkUsername = async () => {
+        if (!username) return;
+        // Skip check if username hasn't changed
+        if (username.toLowerCase() === originalUsername.toLowerCase()) return;
+        setUsernameChecking(true);
+        const taken = await isUsernameTaken(username.toLowerCase());
+        setUsernameChecking(false);
+        if (taken) setUsernameError('Username is already taken.');
+    };
+
     const handleSave = async () => {
         const uid = auth.currentUser?.uid;
         if (!uid) return;
+
+        if (!name.trim()) {
+            Alert.alert('Missing Info', 'Please enter your name.');
+            return;
+        }
+        if (!username.trim()) {
+            Alert.alert('Missing Info', 'Please enter a username.');
+            return;
+        }
+        if (usernameError) {
+            Alert.alert('Invalid Username', usernameError);
+            return;
+        }
+
         setSaving(true);
         try {
-            await updateUser(uid, { name, username, bio, location });
+            // Final uniqueness check before saving (skip if username unchanged)
+            if (username.toLowerCase() !== originalUsername.toLowerCase()) {
+                const taken = await isUsernameTaken(username.toLowerCase());
+                if (taken) {
+                    setUsernameError('Username is already taken.');
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            await updateUser(uid, {
+                name: name.trim(),
+                username: username.trim(),
+                usernameLower: username.trim().toLowerCase(),
+                bio: bio.trim(),
+                location: location.trim(),
+            });
             router.back();
         } catch (err: any) {
             Alert.alert('Error', err.message);
@@ -64,38 +113,65 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.form}>
-                {[
-                    { label: 'NAME', value: name, setter: setName },
-                    { label: 'LOCATION', value: location, setter: setLocation },
-                ].map(({ label, value, setter }) => (
-                    <View key={label} style={styles.field}>
-                        <Text style={styles.label}>{label}</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={value}
-                            onChangeText={setter}
-                            placeholderTextColor="rgba(0,0,0,0.3)"
-                            placeholder={label}
-                            autoCapitalize="none"
-                        />
-                    </View>
-                ))}
 
+                {/* Name */}
+                <View style={styles.field}>
+                    <Text style={styles.label}>NAME</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={name}
+                        onChangeText={setName}
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        placeholder="NAME"
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                    />
+                </View>
+
+                {/* Username */}
                 <View style={styles.field}>
                     <Text style={styles.label}>USERNAME</Text>
-                    <View style={styles.inputRow}>
+                    <View style={[styles.inputRow, usernameError ? styles.inputError : null]}>
                         <Text style={styles.inputPrefix}>@</Text>
                         <TextInput
                             style={[styles.input, styles.inputFlex]}
                             value={username}
-                            onChangeText={setUsername}
+                            onChangeText={handleUsernameChange}
+                            onBlur={checkUsername}
                             placeholderTextColor="rgba(0,0,0,0.3)"
                             placeholder="username"
                             autoCapitalize="none"
+                            autoCorrect={false}
                         />
+                        {usernameChecking && (
+                            <ActivityIndicator size="small" color="#3a7d3a" style={{ marginRight: 10 }} />
+                        )}
+                        {!usernameChecking && username.length > 0 && !usernameError && (
+                            <Text style={styles.checkmark}>✓</Text>
+                        )}
                     </View>
+                    {usernameError ? (
+                        <Text style={styles.errorText}>{usernameError}</Text>
+                    ) : (
+                        <Text style={styles.hintText}>LETTERS, NUMBERS, . AND _ ONLY</Text>
+                    )}
                 </View>
 
+                {/* Location */}
+                <View style={styles.field}>
+                    <Text style={styles.label}>LOCATION</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={location}
+                        onChangeText={setLocation}
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        placeholder="LOCATION"
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                    />
+                </View>
+
+                {/* Bio */}
                 <View style={styles.field}>
                     <Text style={styles.label}>BIO</Text>
                     <TextInput
@@ -106,6 +182,8 @@ export default function EditProfileScreen() {
                         placeholderTextColor="rgba(0,0,0,0.3)"
                         multiline
                         numberOfLines={4}
+                        autoCorrect={false}
+                        autoCapitalize="none"
                     />
                 </View>
 
@@ -163,6 +241,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         paddingLeft: 12,
     },
+    inputError: {
+        borderColor: '#c0392b',
+    },
     inputPrefix: {
         fontFamily: 'BebasNeue-Regular',
         fontSize: 14,
@@ -173,6 +254,24 @@ const styles = StyleSheet.create({
         flex: 1,
         borderWidth: 0,
         paddingLeft: 2,
+    },
+    checkmark: {
+        fontSize: 16,
+        color: '#3a7d3a',
+        marginRight: 12,
+        fontWeight: 'bold',
+    },
+    errorText: {
+        fontFamily: 'BebasNeue-Regular',
+        fontSize: 11,
+        letterSpacing: 0.8,
+        color: '#c0392b',
+    },
+    hintText: {
+        fontFamily: 'BebasNeue-Regular',
+        fontSize: 10,
+        letterSpacing: 0.8,
+        color: 'rgba(0,0,0,0.25)',
     },
     bioInput: { height: 100, textAlignVertical: 'top' },
     saveButton: {

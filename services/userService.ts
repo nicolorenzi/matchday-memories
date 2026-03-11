@@ -4,7 +4,8 @@ import { db } from "../FirebaseConfig";
 export interface UserData {
   id?: string;
   name?: string;
-  username?: string;
+  username?: string;       // stored as typed, used for display
+  usernameLower?: string;  // stored as lowercase, used only for uniqueness checks
   bio?: string;
   location?: string;
   profilePicture?: string;
@@ -31,7 +32,7 @@ export const updateUser = async (userId: string, data: Partial<UserData>): Promi
 };
 
 export const isUsernameTaken = async (username: string): Promise<boolean> => {
-  const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()));
+  const q = query(collection(db, "users"), where("usernameLower", "==", username.toLowerCase()));
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 };
