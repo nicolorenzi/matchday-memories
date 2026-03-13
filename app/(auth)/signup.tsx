@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from "../../FirebaseConfig";
 
+ // Allows users to create an account with email, password, and basic profile setup.
 export default function SignupScreen() {
   const router = useRouter();
 
@@ -23,11 +24,17 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  /**
+   * Validates password strength.
+   * @param pw - The password to validate.
+   * @returns Error message if invalid, null if valid.
+   */
   const validatePassword = (pw: string): string | null => {
     if (pw.length < 6) return "Password must be at least 6 characters.";
     return null;
   };
 
+  // Handles the signup process by validating inputs, creating Firebase auth user, and setting up user profile.
   const handleSignup = async () => {
     if (password !== confirmPassword) {
       Alert.alert("Signup Failed", "Passwords do not match.");
@@ -62,7 +69,6 @@ export default function SignupScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Navbar */}
       <View style={styles.navbar}>
         <Text style={styles.navLogo}>Matchday Memories</Text>
       </View>
@@ -85,7 +91,6 @@ export default function SignupScreen() {
             style={styles.input}
           />
 
-          {/* Password */}
           <View style={styles.passwordRow}>
             <TextInput
               placeholder="PASSWORD"
@@ -146,7 +151,6 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
@@ -258,5 +262,4 @@ const styles = StyleSheet.create({
   loginHighlight: {
     color: "#3a7d3a",
   },
-
 });

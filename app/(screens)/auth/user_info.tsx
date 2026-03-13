@@ -87,7 +87,6 @@ export default function UserInfoScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Navbar */}
       <View style={styles.navbar}>
         <Text style={styles.navLogo}>Matchday Memories</Text>
       </View>
@@ -97,7 +96,7 @@ export default function UserInfoScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>LET'S GET STARTED!</Text>
+        <Text style={styles.title}>LET&apos;S GET STARTED!</Text>
         <Text style={styles.subtitle}>TELL US A BIT ABOUT YOURSELF</Text>
 
         <View style={styles.card}>
@@ -151,7 +150,6 @@ export default function UserInfoScreen() {
             )}
           </View>
 
-          {/* Divider */}
           <View style={styles.optionalDivider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerLabel}>OPTIONAL</Text>

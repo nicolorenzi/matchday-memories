@@ -19,6 +19,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+/**
+ * Component for rendering a podium slot in the favorite matches section.
+ * Displays a rank number and placeholder for a match.
+ */
 const PodiumSlot = ({ rank }: { rank: 1 | 2 | 3 }) => {
   const config = {
     1: { height: 110, color: '#D4AF37' },
@@ -39,6 +43,10 @@ const PodiumSlot = ({ rank }: { rank: 1 | 2 | 3 }) => {
   );
 };
 
+/**
+ * Reusable navigation button component for the profile screen.
+ * Displays a label and arrow, handles press events.
+ */
 const NavButton = ({ label, onPress }: { label: string; onPress: () => void }) => (
   <TouchableOpacity style={styles.navButton} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.navButtonLeft}>
@@ -48,15 +56,18 @@ const NavButton = ({ label, onPress }: { label: string; onPress: () => void }) =
   </TouchableOpacity>
 );
 
+ // Shows favorite matches podium, recent journal entries, and links to other profile sections.
 export default function ProfileScreen() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
 
+  // Generates initials from the user's name for the avatar.
   const initials = userData?.name
     ? userData.name.split(' ').map((n: string) => n[0]).join('')
     : '?';
 
+  // Fetches user data and journal entries when the screen comes into focus.
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
@@ -76,6 +87,7 @@ export default function ProfileScreen() {
     }, [])
   );
 
+  // Shows loading state if user data is not yet loaded
   if (!userData) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -88,7 +100,6 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Nav bar */}
       <View style={styles.navbar}>
         <Text style={styles.navLogo}>Matchday Memories</Text>
         <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/profile/settings")}>
@@ -101,7 +112,7 @@ export default function ProfileScreen() {
         {/* Profile section */}
         <View style={styles.profileSection}>
           <View style={styles.profileRow}>
-            {/* Avatar */}
+            {/* Pfp */}
             <View style={styles.avatar}>
               <Text style={styles.avatarInitials}>{initials}</Text>
             </View>
@@ -131,10 +142,9 @@ export default function ProfileScreen() {
           <Text style={styles.editButtonText}>EDIT PROFILE</Text>
         </TouchableOpacity>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Favorite Matches Podium */}
+        {/* Favorite Matches */}
         <View style={styles.podiumSection}>
           <Text style={styles.sectionTitle}>FAVORITE MATCHES</Text>
           <View style={styles.podiumContainer}>
@@ -146,10 +156,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Bottom section */}
         <View style={styles.bottomSection}>
 
           {/* Recent entries */}
@@ -172,7 +180,6 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          {/* Nav buttons */}
           <View style={styles.navButtons}>
             <NavButton label="MATCHES" onPress={() => router.push("/profile/matches")} />
             <NavButton label="LISTS" onPress={() => router.push("/profile/lists")} />
@@ -215,8 +222,6 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
-
-  // Profile
   profileSection: {
     paddingHorizontal: 22,
     paddingTop: 12,
@@ -312,16 +317,12 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#3a7d3a',
   },
-
-  // Divider
   divider: {
     height: 1,
     backgroundColor: 'rgba(0,0,0,0.07)',
     marginHorizontal: 22,
     marginBottom: 24,
   },
-
-  // Podium
   podiumSection: {
     paddingHorizontal: 22,
     paddingBottom: 28,
@@ -390,8 +391,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     letterSpacing: 1,
   },
-
-  // Bottom section
   bottomSection: {
     paddingHorizontal: 22,
     paddingBottom: 40,
@@ -486,57 +485,5 @@ const styles = StyleSheet.create({
     fontFamily: 'BebasNeue-Regular',
     fontSize: 20,
     color: 'rgba(0,0,0,0.22)',
-  },
-
-  // Placeholder screen
-  placeholderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 22,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.07)',
-  },
-  backButton: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  backButtonText: {
-    fontFamily: 'BebasNeue-Regular',
-    fontSize: 14,
-    letterSpacing: 1,
-    color: '#3a7d3a',
-  },
-  placeholderTitle: {
-    fontFamily: 'BebasNeue-Regular',
-    fontSize: 20,
-    letterSpacing: 2,
-    color: '#111',
-  },
-  placeholderBody: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    padding: 40,
-  },
-  placeholderEmoji: {
-    fontSize: 40,
-    marginBottom: 4,
-  },
-  placeholderHeading: {
-    fontFamily: 'BebasNeue-Regular',
-    fontSize: 18,
-    letterSpacing: 1.5,
-    color: '#111',
-  },
-  placeholderSub: {
-    fontFamily: 'BebasNeue-Regular',
-    fontSize: 13,
-    color: 'rgba(0,0,0,0.38)',
-    letterSpacing: 0.5,
   },
 });

@@ -5,6 +5,7 @@ const headers = {
   'X-Auth-Token': API_KEY,
 };
 
+// Competition data from the football API.
 export interface Competition {
   id: number;
   name: string;
@@ -13,6 +14,7 @@ export interface Competition {
   area: { name: string; flag: string };
 }
 
+// Team data from the football API.
 export interface Team {
   id: number;
   name: string;
@@ -23,6 +25,7 @@ export interface Team {
   website?: string;
 }
 
+// Match data from the football API.
 export interface Match {
   id: number;
   utcDate: string;
@@ -118,7 +121,7 @@ export const COMPETITION_ALIASES: Record<string, string[]> = {
   'league cup':     ['carabao cup', 'efl cup'],
 };
 
-// Expand a query using alias maps — returns all terms to search for
+// Expands a query using alias maps — returns all terms to search for
 export const expandQuery = (
   query: string,
   aliasMap: Record<string, string[]>
@@ -140,6 +143,10 @@ export const SUPPORTED_COMPETITIONS = [
   { code: 'ELC', name: 'Championship' },
 ];
 
+/**
+ * Fetches all competitions from the football API.
+ * @returns Array of competition objects.
+ */
 export const getCompetitions = async (): Promise<Competition[]> => {
   const res = await fetch(`${API_BASE}/competitions?plan=TIER_ONE`, { headers });
   if (!res.ok) throw new Error(`Failed to fetch competitions: ${res.status}`);
@@ -151,13 +158,18 @@ export const getCompetitions = async (): Promise<Competition[]> => {
 let teamCache: Team[] | null = null;
 let teamCacheLoading: Promise<Team[]> | null = null;
 
+/**
+ * Loads all teams from supported competitions with caching.
+ * Fetches teams sequentially to avoid rate limiting.
+ * @returns Array of all teams.
+ */
 const loadAllTeams = (): Promise<Team[]> => {
-  // Return cached result immediately
+  // Returns cached result immediately
   if (teamCache) return Promise.resolve(teamCache);
-  // Return in-flight request if already loading
+  // Returns in-flight request if already loading
   if (teamCacheLoading) return teamCacheLoading;
 
-  // Fetch competitions sequentially to avoid rate limiting
+  // Fetches competitions sequentially to avoid rate limiting
   teamCacheLoading = (async () => {
     const allTeams: Team[] = [];
     const seen = new Set<number>();
@@ -186,6 +198,11 @@ const loadAllTeams = (): Promise<Team[]> => {
   return teamCacheLoading;
 };
 
+/**
+ * Searches for teams matching the query, using aliases for common team names.
+ * @param query - The search query string.
+ * @returns Array of matching teams.
+ */
 export const searchTeams = async (query: string): Promise<Team[]> => {
   if (!query.trim()) return [];
   const allTeams = await loadAllTeams();
@@ -200,6 +217,12 @@ export const searchTeams = async (query: string): Promise<Team[]> => {
   });
 };
 
+/**
+ * Fetches recent matches for a specific team.
+ * @param teamId - The ID of the team.
+ * @param limit - Maximum number of matches to fetch (default: 10).
+ * @returns Array of recent matches for the team.
+ */
 export const getTeamMatches = async (teamId: number, limit = 10): Promise<Match[]> => {
   const res = await fetch(
     `${API_BASE}/teams/${teamId}/matches?status=FINISHED&limit=${limit}`,
@@ -215,6 +238,13 @@ const matchCache: Record<string, Match[]> = {};
 let allMatchesCache: Match[] | null = null;
 let allMatchesCacheLoading: Promise<Match[]> | null = null;
 
+/**
+ * Fetches matches for a specific competition, with optional matchday filter.
+ * Uses caching to avoid repeated API calls.
+ * @param competitionCode - The code of the competition (e.g., 'PL').
+ * @param matchday - Optional matchday number to filter matches.
+ * @returns Array of matches for the competition.
+ */
 export const getMatchesByCompetition = async (
   competitionCode: string,
   matchday?: number
@@ -234,6 +264,11 @@ export const getMatchesByCompetition = async (
   return matches;
 };
 
+/**
+ * Loads all matches from supported competitions with caching.
+ * Fetches matches sequentially to avoid rate limiting.
+ * @returns Array of all matches.
+ */
 const loadAllMatches = (): Promise<Match[]> => {
   if (allMatchesCache) return Promise.resolve(allMatchesCache);
   if (allMatchesCacheLoading) return allMatchesCacheLoading;
@@ -263,6 +298,11 @@ const loadAllMatches = (): Promise<Match[]> => {
   return allMatchesCacheLoading;
 };
 
+/**
+ * Searches for matches matching the query, using team and competition aliases.
+ * @param query - The search query string.
+ * @returns Array of matching matches.
+ */
 export const searchMatches = async (query: string): Promise<Match[]> => {
   if (!query.trim()) return [];
   const all = await loadAllMatches();
@@ -277,6 +317,11 @@ export const searchMatches = async (query: string): Promise<Match[]> => {
   });
 };
 
+/**
+ * Fetches a specific match by its ID.
+ * @param matchId - The ID of the match.
+ * @returns The match object.
+ */
 export const getMatchById = async (matchId: number): Promise<Match> => {
   const res = await fetch(`${API_BASE}/matches/${matchId}`, { headers });
   if (!res.ok) throw new Error(`Failed to fetch match: ${res.status}`);

@@ -9,22 +9,25 @@ import { createJournalEntry, getJournalEntriesByUser } from "../../services/jour
 
 const MOCK_USER_ID = "demoUser123";
 
+/**
+ * Home screen component displaying popular matches and user activity.
+ * Currently shows mock buttons for testing journal functionality.
+ */
 export default function HomeScreen() {
+   // Handles adding a mock journal entry for testing purposes.
   const handleAdd = async () => {
     await createJournalEntry({
       userId: MOCK_USER_ID,
       matchId: "match1",
-      content: "Last minute winner. Unreal.",
+      review: "Last minute winner. Unreal.",
       rating: 4.5,
       createdAt: new Date().toISOString(),
     });
-
-    console.log("Entry added");
   };
 
+  // Handles fetching and logging the user's journal entries.
   const handleFetch = async () => {
-    const entries = await getJournalEntriesByUser(MOCK_USER_ID);
-    console.log(entries);
+    await getJournalEntriesByUser(MOCK_USER_ID);
   };
 
   return (

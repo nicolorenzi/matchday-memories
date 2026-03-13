@@ -4,6 +4,10 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
+/**
+ * Log screen component for logging matches and adding reviews/ratings.
+ * Currently a placeholder screen.
+ */
 export default function LogScreen() {
   return (
     <View style={styles.container}>

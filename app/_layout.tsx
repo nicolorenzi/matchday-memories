@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { auth } from '../FirebaseConfig';
 
+// Manages the app's initial state and redirects users based on authentication status.
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
@@ -19,7 +20,10 @@ export default function RootLayout() {
   const [initialURL, setInitialURL] = useState<string | null | undefined>(undefined);
   const hasNavigated = useRef(false);
 
-  // Deep links
+  /**
+   * Effect to handle deep links by extracting the initial URL when the app starts.
+   * Ignores Expo Go dev server URLs and cleans the URL for routing.
+   */
   useEffect(() => {
     Linking.getInitialURL().then(url => {
       // Ignore Expo Go dev server URLs
@@ -32,7 +36,10 @@ export default function RootLayout() {
     });
   }, []);
 
-  // Firebase auth
+  /**
+   * Effect to listen for Firebase authentication state changes.
+   * Updates the user state and stops loading when authentication is determined.
+   */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
@@ -41,7 +48,11 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  // Routing logic
+  /**
+   * Effect to handle routing logic based on authentication and deep link state.
+   * Redirects to tabs if user is authenticated, or to auth screens if not.
+   * Handles deep links by replacing the current route.
+   */
   useEffect(() => {
     if (loading) return;
     if (initialURL === undefined) return;
@@ -59,17 +70,21 @@ export default function RootLayout() {
     } else {
       router.replace('/(auth)');
     }
-  }, [loading, initialURL, user]);
+  }, [loading, initialURL, user, router]);
 
-  // Deep link listener
+  /**
+   * Effect to listen for incoming deep links while the app is running.
+   * Updates the route when a new deep link is received.
+   */
   useEffect(() => {
     const subscription = Linking.addEventListener('url', ({ url }) => {
       const path = url.replace('matchdaymemories://', '');
       if (path) router.replace(`/${path}` as any);
     });
     return () => subscription.remove();
-  }, []);
+  }, [router]);
 
+  // Shows loading spinner while determining authentication state
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

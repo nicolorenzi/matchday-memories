@@ -1,8 +1,8 @@
 // Users can: 
 // - Search for:
 //  matches -> clicking match takes you to match details page, can choose to rate or review
-//  teams -> clicking team takes you to team details page (all games per competiton, can choose year)
-//  competitions -> clicking competition takes you to comp details page (all games per season, can choose year)
+//  teams -> clicking team takes you to team details page (all games per competiton, see matches for clicking)
+//  competitions -> clicking competition takes you to comp details page (all games per season, see matches for clicking)
 
 import {
   Competition,
@@ -31,19 +31,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Tab = 'matches' | 'teams' | 'competitions';
 
+/**
+ * Formats a UTC date string into a readable date format.
+ * @param utcDate - The UTC date string from the API.
+ * @returns Formatted date string (e.g., "15 Dec 2023").
+ */
 const formatDate = (utcDate: string) => {
   const d = new Date(utcDate);
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+/**
+ * Formats the match score for display.
+ * @param match - The match object containing score information.
+ * @returns Formatted score string (e.g., "2 – 1") or "vs" if not played.
+ */
 const formatScore = (match: Match) => {
   const { home, away } = match.score.fullTime;
   if (home === null || away === null) return 'vs';
   return `${home} – ${away}`;
 };
 
-// Row components 
-
+/**
+ * Component for rendering a match row in the search results.
+ * Displays match details including teams, score, competition, and date.
+ */
 const MatchRow = ({ match, onPress }: { match: Match; onPress: () => void }) => (
   <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.matchMeta}>
@@ -68,6 +80,10 @@ const MatchRow = ({ match, onPress }: { match: Match; onPress: () => void }) => 
   </TouchableOpacity>
 );
 
+/**
+ * Component for rendering a team row in the search results.
+ * Displays team name, crest, and venue.
+ */
 const TeamRow = ({ team, onPress }: { team: Team; onPress: () => void }) => (
   <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.rowInner}>
@@ -83,6 +99,10 @@ const TeamRow = ({ team, onPress }: { team: Team; onPress: () => void }) => (
   </TouchableOpacity>
 );
 
+/**
+ * Component for rendering a competition row in the search results.
+ * Displays competition name, emblem, and area.
+ */
 const CompetitionRow = ({ competition, onPress }: { competition: Competition; onPress: () => void }) => (
   <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.rowInner}>
@@ -98,6 +118,7 @@ const CompetitionRow = ({ competition, onPress }: { competition: Competition; on
   </TouchableOpacity>
 );
 
+ // Main search screen component allowing users to search for matches, teams, and competitions.
 export default function SearchScreen() {
   const router = useRouter();
 
@@ -112,12 +133,12 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Preload competitions once
+  // Preloads competitions data once on component mount.
   useEffect(() => {
     getCompetitions().then(setAllCompetitions).catch(() => {});
   }, []);
 
-  // On each query change, fetch/filter all three types
+  // Fetches teams and matches when query is provided, filters competitions client-side.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -148,7 +169,7 @@ export default function SearchScreen() {
     }, 350);
   }, [query]);
 
-  // Competitions filtered client-side
+  // Filters competitions based on the search query using aliases.
   const filteredCompetitions = allCompetitions.filter(c => {
     if (!query.trim()) return false;
     const terms = expandQuery(query, COMPETITION_ALIASES);
@@ -158,11 +179,17 @@ export default function SearchScreen() {
     );
   });
 
+  // Determines the data to display based on the active tab.
   const activeData: (Match | Team | Competition)[] =
     activeTab === 'matches' ? allMatches :
     activeTab === 'teams' ? allTeams :
     filteredCompetitions;
 
+  /**
+   * Returns the count of results for a given tab.
+   * @param tab - The tab to get the count for.
+   * @returns Number of results or 0 if not searched.
+   */
   const tabCount = (tab: Tab): number => {
     if (!hasSearched) return 0;
     if (tab === 'matches') return allMatches.length;
@@ -170,6 +197,7 @@ export default function SearchScreen() {
     return filteredCompetitions.length;
   };
 
+  // Renders the empty state when no results are found.
   const renderEmpty = () => {
     if (!hasSearched || loading) return null;
     return (
@@ -183,7 +211,6 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Navbar */}
       <View style={styles.navbar}>
         <Text style={styles.navLogo}>Matchday Memories</Text>
       </View>
@@ -216,7 +243,6 @@ export default function SearchScreen() {
         </View>
       ) : (
         <>
-          {/* Tabs */}
           <View style={styles.tabs}>
             {(['matches', 'teams', 'competitions'] as Tab[]).map(tab => (
               <TouchableOpacity
@@ -282,7 +308,6 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-
   navbar: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -296,8 +321,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#3a7d3a',
   },
-
-  // Search bar
   searchBarWrapper: {
     paddingHorizontal: 16,
     paddingTop: 14,
@@ -327,8 +350,6 @@ const styles = StyleSheet.create({
     color: 'rgba(0,0,0,0.3)',
     paddingHorizontal: 4,
   },
-
-  // Tabs
   tabs: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -379,12 +400,8 @@ const styles = StyleSheet.create({
   tabBadgeTextActive: {
     color: '#fff',
   },
-
-  // List
   list: { flex: 1 },
   listContent: { padding: 16, gap: 10 },
-
-  // Cards
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -397,8 +414,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-
-  // Match card
   matchMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -459,8 +474,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
-
-  // Team / competition rows
   rowInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -485,8 +498,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'rgba(0,0,0,0.2)',
   },
-
-  // States
   loadingState: {
     flex: 1,
     alignItems: 'center',
@@ -499,7 +510,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingBottom: 60,
   },
-  idleEmoji: { fontSize: 48, marginBottom: 4 },
   idleTitle: {
     fontFamily: 'BebasNeue-Regular',
     fontSize: 22,
@@ -518,7 +528,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     gap: 10,
   },
-  emptyEmoji: { fontSize: 36 },
   emptyText: {
     fontFamily: 'BebasNeue-Regular',
     fontSize: 14,
